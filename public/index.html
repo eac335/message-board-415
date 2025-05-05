@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Message Board</title>
+</head>
+<body>
+  <h2>Login / Register</h2>
+  <input id="username" placeholder="Username" />
+  <input id="password" type="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+  <button onclick="register()">Register</button>
+  <p id="loginStatus"></p>
+
+  <hr>
+
+  <div id="app" style="display:none;">
+    <h2>Welcome, <span id="currentUser"></span></h2>
+
+    <h3>Create Topic</h3>
+    <input id="newTopic" placeholder="Topic name" />
+    <button onclick="createTopic()">Create</button>
+
+    <h3>Your Subscribed Topics</h3>
+    <div id="subscribedTopics"></div>
+
+    <h3>Other Topics</h3>
+    <div id="availableTopics"></div>
+  </div>
+
+  <script>
+    let userId = null;
+
+    async function login() {
+      const res = await fetch('/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        })
+      });
+      const data = await res.json();
+      if (data.userId) {
+        userId = data.userId;
+        document.getElementById('loginStatus').textContent = '✅ Login successful';
+        document.getElementById('currentUser').textContent = document.getElementById('username').value;
+        document.getElementById('app').style.display = 'block';
+        loadTopics();
+      } else {
+        document.getElementById('loginStatus').textContent = '❌ Login failed';
+      }
+    }
+
+    async function register() {
+      const res = await fetch('/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value
+        })
+      });
+      const data = await res.json();
+      if (data.user) {
+        alert('✅ Registered! Now log in.');
+      } else {
+        alert('❌ Registration failed: ' + (data.error || 'unknown error'));
+      }
+    }
+
+    async function createTopic() {
+      const name = document.getElementById('newTopic').value;
+      await fetch('/topics/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, userId })
+      });
+      loadTopics();
+    }
+
+    async function loadTopics() {
+      const subsRes = await fetch(`/subscriptions/subscribed/${userId}`);
+      const subscribed = await subsRes.json();
+
+      const availableRes = await fetch(`/subscriptions/available/${userId}`);
+      const available = await availableRes.json();
+
+      const messagesRes = await fetch(`/messages/recent/${userId}`);
+      const topicsWithMessages = await messagesRes.json();
+
+      // Subscribed topics
+      document.getElementById('subscribedTopics').innerHTML = '';
+      subscribed.forEach(topic => {
+        const block = document.createElement('div');
+        block.innerHTML = `
+          <h4>${topic.name} 
+            <button onclick="unsubscribe('${topic._id}')">Unsubscribe</button>
+          </h4>
+          <ul id="messages-${topic._id}"></ul>
+          <input placeholder="Your message..." id="msg-${topic._id}" />
+          <button onclick="postMessage('${topic._id}')">Send</button>
+        `;
+        document.getElementById('subscribedTopics').appendChild(block);
+      });
+
+      // Show 2 recent messages
+      topicsWithMessages.forEach(t => {
+        const ul = document.getElementById(`messages-${t.topicId}`);
+        if (ul) {
+          t.messages.forEach(m => {
+            const li = document.createElement('li');
+            li.textContent = `${m.userId.username}: ${m.content}`;
+            ul.appendChild(li);
+          });
+        }
+      });
+
+      // Available topics
+      document.getElementById('availableTopics').innerHTML = '';
+      available.forEach(topic => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          ${topic.name} 
+          <button onclick="subscribe('${topic._id}')">Subscribe</button>
+        `;
+        document.getElementById('availableTopics').appendChild(div);
+      });
+    }
+
+    async function subscribe(topicId) {
+      await fetch('/subscriptions/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId, userId })
+      });
+      loadTopics();
+    }
+
+    async function unsubscribe(topicId) {
+      await fetch('/subscriptions/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId, userId })
+      });
+      loadTopics();
+    }
+
+    async function postMessage(topicId) {
+      const content = document.getElementById(`msg-${topicId}`).value;
+      await fetch('/messages/post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId, userId, content })
+      });
+      loadTopics();
+    }
+  </script>
+</body>
+</html>
