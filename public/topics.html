@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Topics - Message Board</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+
+    #topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h2 {
+      color: #343a40;
+    }
+
+    h3 {
+      margin-top: 30px;
+      color: #007bff;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 5px;
+    }
+
+    input {
+      padding: 8px;
+      margin: 5px 0;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 8px 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      margin-left: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .topic-block {
+      background-color: #ffffff;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .message-list {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 10px;
+    }
+
+    .message-list li {
+      background-color: #f1f1f1;
+      margin-bottom: 5px;
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+
+    .stat-block {
+      padding-left: 10px;
+      margin-bottom: 10px;
+    }
+
+    #logoutBtn {
+      background-color: #dc3545;
+      margin-left: auto;
+    }
+
+    #logoutBtn:hover {
+      background-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <h2>Welcome, <span id="currentUser"></span></h2>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <h3>Create Topic</h3>
+  <input id="newTopic" placeholder="Topic name" />
+  <button onclick="createTopic()">Create</button>
+
+  <h3>Your Subscribed Topics - Click on a topic to view more information!</h3>
+  <div id="subscribedTopics"></div>
+
+  <h3>Available Topics</h3>
+  <div id="availableTopics"></div>
+
+  <h3>Topic View Stats</h3>
+  <div id="topicStats"></div>
+
+  <script>
+    const userId = localStorage.getItem('userId');
+    const username = localStorage.getItem('username');
+    if (!userId || !username) {
+      window.location.href = '/';
+    }
+
+    document.getElementById('currentUser').textContent = username;
+
+    document.getElementById('logoutBtn').onclick = () => {
+      localStorage.clear();
+      window.location.href = '/';
+    };
+
+    async function createTopic() {
+      const name = document.getElementById('newTopic').value;
+      if (!name.trim()) return alert('⚠️ Topic name required.');
+      await fetch('/topics/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, userId })
+      });
+      loadTopics();
+    }
+
+    async function loadTopics() {
+      const [subscribed, available, messages, stats] = await Promise.all([
+        fetch(`/subscriptions/subscribed/${userId}`).then(res => res.json()),
+        fetch(`/subscriptions/available/${userId}`).then(res => res.json()),
+        fetch(`/messages/recent/${userId}`).then(res => res.json()),
+        fetch('/topics').then(res => res.json())
+      ]);
+
+      // Subscribed topics
+      const subDiv = document.getElementById('subscribedTopics');
+      subDiv.innerHTML = '';
+      subscribed.forEach(topic => {
+        const block = document.createElement('div');
+        block.className = 'topic-block';
+        block.innerHTML = `
+          <h4>
+            <a href="/topic.html?id=${topic._id}">${topic.name}</a>
+            <button onclick="unsubscribe('${topic._id}')">Unsubscribe</button>
+          </h4>
+          <ul class="message-list" id="messages-${topic._id}"></ul>
+          <input placeholder="Your message..." id="msg-${topic._id}" />
+          <button onclick="postMessage('${topic._id}')">Send</button>
+        `;
+        subDiv.appendChild(block);
+      });
+
+      // Render messages
+      messages.forEach(t => {
+        const ul = document.getElementById(`messages-${t.topicId}`);
+        if (ul) {
+          ul.innerHTML = '';
+          t.messages.forEach(m => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${m.userId.username}</strong> said "<em>${m.content}</em>"`;
+            ul.appendChild(li);
+          });
+        }
+      });
+
+      // Available topics
+      const availDiv = document.getElementById('availableTopics');
+      availDiv.innerHTML = '';
+      available.forEach(topic => {
+        const div = document.createElement('div');
+        div.className = 'topic-block';
+        div.innerHTML = `
+          <strong>${topic.name}</strong>
+          <button onclick="subscribe('${topic._id}')">Subscribe</button>
+        `;
+        availDiv.appendChild(div);
+      });
+
+      // Stats
+      const statsDiv = document.getElementById('topicStats');
+      statsDiv.innerHTML = stats
+        .map(t => `<div class="stat-block">${t.name}: <strong>${t.accessCount} views</strong></div>`)
+        .join('');
+    }
+
+    async function subscribe(topicId) {
+      await fetch('/subscriptions/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId, userId })
+      });
+      loadTopics();
+    }
+
+    async function unsubscribe(topicId) {
+      await fetch('/subscriptions/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId, userId })
+      });
+      loadTopics();
+    }
+
+    async function postMessage(topicId) {
+      const input = document.getElementById(`msg-${topicId}`);
+      if (!input || !input.value.trim()) return;
+      await fetch('/messages/post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId, userId, content: input.value })
+      });
+      input.value = '';
+      loadTopics();
+    }
+
+    loadTopics();
+  </script>
+</body>
+</html>

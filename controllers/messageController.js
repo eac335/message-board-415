@@ -47,3 +47,16 @@ exports.getRecentMessagesByUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// ✅ Get all messages in a topic (for topic.html)
+exports.getMessagesByTopicId = async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const messages = await Message.find({ topicId })
+      .sort({ createdAt: 1 }) // oldest to newest
+      .populate('userId', 'username');
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

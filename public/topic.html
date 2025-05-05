@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Topic Details</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+
+    h2 {
+      color: #343a40;
+    }
+
+    h3 {
+      margin-top: 30px;
+      color: #007bff;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 5px;
+    }
+
+    button {
+      padding: 8px 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    input {
+      padding: 8px;
+      width: 300px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #messagesList {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 15px;
+    }
+
+    #messagesList li {
+      background-color: #f1f1f1;
+      margin-bottom: 6px;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    #creatorName,
+    #viewCount {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <button id="backBtn">← Back to Topics</button>
+
+  <h2 id="topicName"></h2>
+  <p>Created by: <span id="creatorName"></span></p>
+  <p>Views: <span id="viewCount"></span></p>
+
+  <h3>Messages</h3>
+  <ul id="messagesList"></ul>
+
+  <h3>Post a Message</h3>
+  <input id="newMessage" placeholder="Your message..." />
+  <button id="sendBtn" type="button">Send</button>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const userId = localStorage.getItem('userId');
+      const username = localStorage.getItem('username');
+      const urlParams = new URLSearchParams(window.location.search);
+      const topicId = urlParams.get('id');
+
+      if (!userId || !topicId) {
+        alert("Missing user or topic ID. Please log in again.");
+        window.location.href = "/";
+        return;
+      }
+
+      document.getElementById('backBtn').onclick = () => {
+        window.location.href = '/topics.html';
+      };
+
+      document.getElementById('sendBtn').onclick = async () => {
+        const input = document.getElementById('newMessage');
+        const content = input.value.trim();
+        if (!content) return alert('⚠️ Message cannot be empty.');
+
+        try {
+          const res = await fetch('/messages/post', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topicId, userId, content })
+          });
+
+          if (res.ok) {
+            input.value = '';
+            loadMessages();
+          } else {
+            const data = await res.json();
+            alert(`❌ Could not post message: ${data.message || data.error}`);
+          }
+        } catch (err) {
+          alert('❌ Error sending message.');
+        }
+      };
+
+      async function loadTopicDetails() {
+        try {
+          const res = await fetch(`/topics/view/${topicId}`);
+          if (!res.ok) throw new Error("Topic not found");
+          const topic = await res.json();
+
+          document.getElementById('topicName').textContent = topic.name;
+          document.getElementById('viewCount').textContent = topic.accessCount;
+
+          if (topic.creatorId?.username) {
+            document.getElementById('creatorName').textContent = topic.creatorId.username;
+          } else {
+            const creatorRes = await fetch(`/users/${topic.creatorId}`);
+            const creator = await creatorRes.json();
+            document.getElementById('creatorName').textContent = creator.username;
+          }
+        } catch (err) {
+          alert('Failed to load topic: ' + err.message);
+          window.location.href = '/topics.html';
+        }
+      }
+
+      async function loadMessages() {
+        try {
+          const res = await fetch(`/messages/topic/${topicId}`);
+          const messages = await res.json();
+
+          const list = document.getElementById('messagesList');
+          list.innerHTML = '';
+          messages.forEach(m => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${m.userId.username}</strong> said: "<em>${m.content}</em>"`;
+            list.appendChild(li);
+          });
+        } catch (err) {
+          alert('Failed to load messages.');
+        }
+      }
+
+      loadTopicDetails();
+      loadMessages();
+    });
+  </script>
+</body>
+</html>

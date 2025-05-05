@@ -1,35 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Message Board</title>
+  <title>Login - Message Board</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 50px;
+      background-color: #f8f9fa;
+      color: #333;
+      text-align: center;
+    }
+
+    h2 {
+      color: #343a40;
+      margin-bottom: 20px;
+    }
+
+    input {
+      display: block;
+      margin: 10px auto;
+      padding: 10px;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      padding: 10px 16px;
+      margin: 10px 5px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #loginStatus {
+      margin-top: 15px;
+      color: red;
+      font-weight: bold;
+    }
+
+    .container {
+      background: white;
+      max-width: 400px;
+      margin: auto;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 <body>
-  <h2>Login / Register</h2>
-  <input id="username" placeholder="Username" />
-  <input id="password" type="password" placeholder="Password" />
-  <button onclick="login()">Login</button>
-  <button onclick="register()">Register</button>
-  <p id="loginStatus"></p>
-
-  <hr>
-
-  <div id="app" style="display:none;">
-    <h2>Welcome, <span id="currentUser"></span></h2>
-
-    <h3>Create Topic</h3>
-    <input id="newTopic" placeholder="Topic name" />
-    <button onclick="createTopic()">Create</button>
-
-    <h3>Your Subscribed Topics</h3>
-    <div id="subscribedTopics"></div>
-
-    <h3>Other Topics</h3>
-    <div id="availableTopics"></div>
+  <div class="container">
+    <h2>Login / Register</h2>
+    <input id="username" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <button onclick="register()">Register</button>
+    <p id="loginStatus"></p>
   </div>
 
   <script>
-    let userId = null;
-
     async function login() {
       const res = await fetch('/users/login', {
         method: 'POST',
@@ -41,13 +77,10 @@
       });
 
       const data = await res.json();
-
       if (res.status === 200 && data.userId) {
-        userId = data.userId;
-        document.getElementById('loginStatus').textContent = '✅ Login successful';
-        document.getElementById('currentUser').textContent = document.getElementById('username').value;
-        document.getElementById('app').style.display = 'block';
-        loadTopics();
+        localStorage.setItem('userId', data.userId);
+        localStorage.setItem('username', document.getElementById('username').value);
+        window.location.href = '/topics.html';
       } else {
         document.getElementById('loginStatus').textContent = '❌ Invalid credentials';
       }
@@ -62,100 +95,13 @@
           password: document.getElementById('password').value
         })
       });
+
       const data = await res.json();
       if (data.user) {
         alert('✅ Registered! Now log in.');
       } else {
         alert('❌ Registration failed: ' + (data.error || 'unknown error'));
       }
-    }
-
-    async function createTopic() {
-      const name = document.getElementById('newTopic').value;
-      await fetch('/topics/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, userId })
-      });
-      loadTopics();
-    }
-
-    async function loadTopics() {
-      const subsRes = await fetch(`/subscriptions/subscribed/${userId}`);
-      const subscribed = await subsRes.json();
-
-      const availableRes = await fetch(`/subscriptions/available/${userId}`);
-      const available = await availableRes.json();
-
-      const messagesRes = await fetch(`/messages/recent/${userId}`);
-      const topicsWithMessages = await messagesRes.json();
-
-      document.getElementById('subscribedTopics').innerHTML = '';
-      subscribed.forEach(topic => {
-        const block = document.createElement('div');
-        block.innerHTML = `
-          <h4>${topic.name} 
-            <button onclick="unsubscribe('${topic._id}')">Unsubscribe</button>
-          </h4>
-          <ul id="messages-${topic._id}"></ul>
-          <input placeholder="Your message..." id="msg-${topic._id}" />
-          <button onclick="postMessage('${topic._id}')">Send</button>
-        `;
-        document.getElementById('subscribedTopics').appendChild(block);
-      });
-
-      topicsWithMessages.forEach(t => {
-        const ul = document.getElementById(`messages-${t.topicId}`);
-        if (ul) {
-          ul.innerHTML = '';
-          t.messages.forEach(m => {
-            const li = document.createElement('li');
-            li.textContent = `${m.userId.username}: ${m.content}`;
-            ul.appendChild(li);
-          });
-        }
-      });
-
-      document.getElementById('availableTopics').innerHTML = '';
-      available.forEach(topic => {
-        const div = document.createElement('div');
-        div.innerHTML = `
-          ${topic.name} 
-          <button onclick="subscribe('${topic._id}')">Subscribe</button>
-        `;
-        document.getElementById('availableTopics').appendChild(div);
-      });
-    }
-
-    async function subscribe(topicId) {
-      await fetch('/subscriptions/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicId, userId })
-      });
-      loadTopics();
-    }
-
-    async function unsubscribe(topicId) {
-      await fetch('/subscriptions/unsubscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicId, userId })
-      });
-      loadTopics();
-    }
-
-    async function postMessage(topicId) {
-      const input = document.getElementById(`msg-${topicId}`);
-      if (!input) return alert('⚠️ Message input not found.');
-      const content = input.value;
-      if (!content.trim()) return alert('⚠️ Cannot send empty message.');
-      await fetch('/messages/post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicId, userId, content })
-      });
-      loadTopics();
     }
   </script>
 </body>

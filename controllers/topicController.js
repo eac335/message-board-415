@@ -38,3 +38,13 @@ exports.getTopicById = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// New: return topic stats
+exports.getTopicStats = async (req, res) => {
+  try {
+    const topics = await Topic.find({}, 'name accessCount');
+    res.json(topics);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
