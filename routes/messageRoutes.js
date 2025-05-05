@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/messageController');
+const messageController = require('../controllers/messageController');
 
-// Post a message to a topic (user must be subscribed)
-router.post('/post', controller.postMessage);
+// Post a new message (user must be subscribed to the topic)
+router.post('/post', messageController.postMessage);
 
-// Get the 2 most recent messages per topic for a user
-router.get('/recent/:userId', controller.getRecentMessagesByUser);
+// Get the 2 most recent messages from each topic a user is subscribed to
+router.get('/recent/:userId', messageController.getRecentMessagesByUser);
 
 module.exports = router;

@@ -8,7 +8,7 @@ router.post('/create', topicController.createTopic);
 // Get all topics
 router.get('/', topicController.getAllTopics);
 
-// Get a specific topic by ID and increment view count
-router.get('/view/:id', topicController.getTopicById);
+// Get a specific topic by ID
+router.get('/view/:id', topicController.getTopicById); // also increments view count
 
 module.exports = router;

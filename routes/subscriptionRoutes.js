@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/subscriptionController');
+const subscriptionController = require('../controllers/subscriptionController');
 
-// Subscribe a user to a topic
-router.post('/subscribe', controller.subscribe);
+// Subscribe to a topic
+router.post('/subscribe', subscriptionController.subscribe);
 
-// Unsubscribe a user from a topic
-router.post('/unsubscribe', controller.unsubscribe);
+// Unsubscribe from a topic
+router.post('/unsubscribe', subscriptionController.unsubscribe);
 
-// Get topics available for a user to subscribe to
-router.get('/available/:userId', controller.getAvailableTopics);
+// Get all topics the user is subscribed to
+router.get('/subscribed/:userId', subscriptionController.getUserSubscriptions);
 
-// Get topics a user is subscribed to
-router.get('/subscribed/:userId', controller.getUserSubscriptions);
+// Get topics the user is NOT subscribed to
+router.get('/available/:userId', subscriptionController.getAvailableTopics);
 
 module.exports = router;
