@@ -13,6 +13,11 @@ const messageRoutes = require('./routes/messageRoutes');
 
 app.use(express.json());
 
+// ✅ Health check route (for Render)
+app.get('/health', (req, res) => {
+  res.send('👍 Backend is working!');
+});
+
 // Mount backend API routes
 app.use('/users', userRoutes);
 app.use('/topics', topicRoutes);
