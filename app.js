@@ -2,11 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const cookieParser = require('cookie-parser'); // ✅ NEW
 
 const app = express();
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser()); // ✅ NEW
 
 // Health check (for Render deployment)
 app.get('/health', (_, res) => res.send('👍 Backend is working!'));
