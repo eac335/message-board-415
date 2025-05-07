@@ -1,5 +1,6 @@
 const Subscription = require('../models/Subscription');
 const Topic = require('../models/Topic');
+const observer = require('../utils/observer'); // ✅ Import observer
 
 // Subscribe user to a topic
 exports.subscribe = async (req, res) => {
@@ -12,6 +13,10 @@ exports.subscribe = async (req, res) => {
 
     const sub = new Subscription({ userId, topicId });
     await sub.save();
+    
+    // ✅ Observer pattern: emit subscription event
+    observer.emit('topicSubscribed', { topicId, userId });
+    
     res.status(201).json({ message: 'Subscribed successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
