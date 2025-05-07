@@ -115,8 +115,10 @@
   <div id="topicStats"></div>
 
   <script>
-    const userId = localStorage.getItem('userId');
-    const username = localStorage.getItem('username');
+    // ✅ Support both permanent (localStorage) and temporary (sessionStorage) login
+    let userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+    let username = localStorage.getItem('username') || sessionStorage.getItem('username');
+
     if (!userId || !username) {
       window.location.href = '/';
     }
@@ -125,6 +127,7 @@
 
     document.getElementById('logoutBtn').onclick = () => {
       localStorage.clear();
+      sessionStorage.clear();
       window.location.href = '/';
     };
 
@@ -147,7 +150,6 @@
         fetch('/topics').then(res => res.json())
       ]);
 
-      // Subscribed topics
       const subDiv = document.getElementById('subscribedTopics');
       subDiv.innerHTML = '';
       subscribed.forEach(topic => {
@@ -165,7 +167,6 @@
         subDiv.appendChild(block);
       });
 
-      // Render messages
       messages.forEach(t => {
         const ul = document.getElementById(`messages-${t.topicId}`);
         if (ul) {
@@ -178,7 +179,6 @@
         }
       });
 
-      // Available topics
       const availDiv = document.getElementById('availableTopics');
       availDiv.innerHTML = '';
       available.forEach(topic => {
@@ -191,7 +191,6 @@
         availDiv.appendChild(div);
       });
 
-      // Stats
       const statsDiv = document.getElementById('topicStats');
       statsDiv.innerHTML = stats
         .map(t => `<div class="stat-block">${t.name}: <strong>${t.accessCount} views</strong></div>`)

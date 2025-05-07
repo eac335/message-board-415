@@ -78,8 +78,9 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const userId = localStorage.getItem('userId');
-      const username = localStorage.getItem('username');
+      // ✅ Updated to check both localStorage and sessionStorage
+      const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+      const username = localStorage.getItem('username') || sessionStorage.getItem('username');
       const urlParams = new URLSearchParams(window.location.search);
       const topicId = urlParams.get('id');
 

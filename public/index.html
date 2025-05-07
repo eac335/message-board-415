@@ -24,37 +24,67 @@
         <a href="#" class="forgot-password">Forgot password?</a>
       </div>
 
-      <button onclick="login()">Login</button>
-
-      <p class="signup-footer">
-        Don’t have an account?
-        <a href="#" class="signup-link">Register</a>
-      </p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button onclick="login()">Login</button>
+        <button onclick="register()">Register</button>
+      </div>
 
       <p id="loginStatus"></p>
     </div>
   </div>
 
   <script>
+    function storeUser(userId, username) {
+      const remember = document.getElementById('rememberMe').checked;
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem('userId', userId);
+      storage.setItem('username', username);
+    }
+
     async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
       const res = await fetch('/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: document.getElementById('username').value,
-          password: document.getElementById('password').value
-        })
+        body: JSON.stringify({ username, password })
       });
 
       const data = await res.json();
       if (res.status === 200 && data.userId) {
-        if (document.getElementById('rememberMe').checked) {
-          localStorage.setItem('userId', data.userId);
-          localStorage.setItem('username', document.getElementById('username').value);
-        }
+        storeUser(data.userId, username);
         window.location.href = '/topics.html';
       } else {
         document.getElementById('loginStatus').textContent = '❌ Invalid credentials';
+      }
+    }
+
+    async function register() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        document.getElementById('loginStatus').textContent = '⚠️ Username and password required.';
+        return;
+      }
+
+      try {
+        const res = await fetch('/users/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+        if (res.status === 201 && data.userId) {
+          storeUser(data.userId, username);
+          window.location.href = '/topics.html';
+        } else {
+          document.getElementById('loginStatus').textContent = '❌ ' + (data.error || 'Registration failed.');
+        }
+      } catch (err) {
+        document.getElementById('loginStatus').textContent = '❌ Error registering user.';
       }
     }
   </script>
