@@ -92,7 +92,7 @@
       // ✅ Safe session + cookie logging
       console.log("🔐 User session active");
       console.log(`📦 Stored in: ${localStorage.getItem('userId') ? 'localStorage' : 'sessionStorage'}`);
-      console.log('🍪 Cookies:', document.cookie || 'No accessible cookies');
+      console.log('🍪 Cookies:', document.cookie ? 'Cookies set' : 'No accessible cookies');
 
       document.getElementById('backBtn').onclick = () => {
         window.location.href = '/topics.html';

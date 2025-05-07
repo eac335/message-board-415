@@ -125,7 +125,7 @@
     // ✅ Privacy-safe session and cookie logging
     console.log('🔐 User session active');
     console.log('📦 Stored in:', localStorage.getItem('userId') ? 'localStorage' : 'sessionStorage');
-    console.log('🍪 Cookies:', document.cookie || 'No accessible cookies');
+    console.log('🍪 Cookies:', document.cookie ? 'Cookies set' : 'No accessible cookies');
 
     // Hide real username in UI for privacy
     document.getElementById('currentUser').textContent = 'User';
