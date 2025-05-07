@@ -78,7 +78,6 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // ✅ Updated to check both localStorage and sessionStorage
       const userId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
       const username = localStorage.getItem('username') || sessionStorage.getItem('username');
       const urlParams = new URLSearchParams(window.location.search);
@@ -89,6 +88,11 @@
         window.location.href = "/";
         return;
       }
+
+      // ✅ Safe session + cookie logging
+      console.log("🔐 User session active");
+      console.log(`📦 Stored in: ${localStorage.getItem('userId') ? 'localStorage' : 'sessionStorage'}`);
+      console.log('🍪 Cookies:', document.cookie || 'No accessible cookies');
 
       document.getElementById('backBtn').onclick = () => {
         window.location.href = '/topics.html';
